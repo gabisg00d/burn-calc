@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Burn Resus Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: clinical, quiet, fast to read at the bedside.
+   IDEA: a resus flowsheet card: live result on top, inputs below, Lund-Browder chart as the body.
+   PICTURE: the big hourly LR rate in a dark result block; the Lund-Browder rows with fraction chips.
+   COLOUR and TYPE: white/ink with one burn-orange accent; Public Sans.
+   LAYOUT: single column on iPhone, sticky mini-bar; two columns above 900px. */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#111110);--ink:light-dark(#151413,#f1efec);--mute:light-dark(#6b6762,#a29d97);--line:light-dark(#e4e1dc,#2c2a28);--soft:light-dark(#f4f2ef,#1c1b19);--acc:#e0521f;--res:#1a1816;--resink:#f6f3ee}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Public Sans",system-ui,-apple-system,sans-serif;overflow-x:clip;-webkit-text-size-adjust:100%}
+.wrap{max-width:1100px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+h1{font-size:28px;line-height:1.05;margin:4px 0 2px;font-weight:800;text-wrap:balance}
+.sub{color:var(--mute);font-size:14px;margin:0 0 14px}
+.grid{display:grid;gap:16px}
+@media(min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}.res{position:sticky;top:16px}}
+.res{background:var(--res);color:var(--resink);border-radius:18px;padding:18px}
+.res .k{font-size:13px;color:#b8b1a8}
+.big{font-size:clamp(44px,13vw,64px);font-weight:800;line-height:1;letter-spacing:-.02em;white-space:nowrap}
+.big small{font-size:18px;font-weight:600;color:#b8b1a8;margin-left:4px}
+.phase{color:var(--acc);font-weight:600;font-size:14px;margin:8px 0 6px}
+.now{display:grid;gap:2px}
+.now div{font-size:clamp(34px,10vw,52px);font-weight:800;line-height:1.05;letter-spacing:-.02em;white-space:nowrap}
+.now div small{font-size:17px;font-weight:600;color:#b8b1a8;margin-left:6px;letter-spacing:0}
+.now div.plus{font-size:clamp(26px,7.5vw,38px)}
+.now div.plus i{font-style:normal;color:var(--acc);margin-right:6px}
+.ln{border-top:1px solid #3a3632;padding:10px 0}
+.ln span{display:block;font-size:13px;color:#b8b1a8}
+.ln b{display:block;font-size:19px;line-height:1.3}
+.ln em{display:block;font-style:normal;font-size:13px;color:#b8b1a8}
+.ln em:empty{display:none}
+.rows{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 14px;margin-top:16px;border-top:1px solid #3a3632;padding-top:14px}
+.rows div b{display:block;font-size:20px;white-space:nowrap}
+.rows div span{font-size:13px;color:#b8b1a8}
+.warn{margin-top:12px;font-size:14px;background:#3a2219;color:#ffd9c9;border-radius:10px;padding:10px 12px}
+.warn:empty{display:none}
+.card{border:1px solid var(--line);border-radius:18px;padding:16px}
+.card h2{font-size:17px;margin:0 0 10px}
+.f{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+label{font-size:13px;color:var(--mute);display:block;margin-bottom:4px}
+input[type=number]{width:100%;font:600 18px "Public Sans",system-ui,sans-serif;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:48px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.seg{display:flex;background:var(--soft);border-radius:12px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;color:var(--ink);font:600 14px "Public Sans",system-ui,sans-serif;border-radius:9px;min-height:40px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--bg);box-shadow:0 1px 3px #0003}
+.tog{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;color:var(--ink);margin:6px 0 0}
+.tog input{width:22px;height:22px;accent-color:var(--acc)}
+.hint{font-size:13px;color:var(--mute);margin:8px 0 0}
+.lb{display:grid;gap:2px}
+.lr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.lr .n{font-size:15px;font-weight:600}
+.lr .n span{display:block;font-size:12px;color:var(--mute);font-weight:400}
+.ch{display:flex;gap:3px}
+.lr{grid-template-columns:minmax(0,1fr)}
+.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cu{width:76px!important;min-height:40px!important;padding:6px 8px!important;font-size:16px!important;text-align:right}
+.cu.cap{border-color:var(--acc)!important;box-shadow:0 0 0 2px var(--acc)}
+@media(min-width:560px){.lr{grid-template-columns:minmax(0,1fr) auto}}
+.ch button{width:40px;height:40px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;font:600 13px "Public Sans",system-ui,sans-serif;cursor:pointer}
+.ch button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
+.lbtot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
+.lbtot b{font-size:24px}
+.ghost{border:1px solid var(--line);background:none;color:var(--ink);border-radius:10px;padding:8px 14px;min-height:44px;font:600 14px "Public Sans",system-ui,sans-serif;cursor:pointer}
+.mini{position:fixed;left:0;right:0;top:0;z-index:5;background:var(--res);color:var(--resink);padding:calc(8px + env(safe-area-inset-top)) 16px 8px;display:flex;justify-content:space-between;font-size:14px;transform:translateY(-110%);transition:transform .2s}
+.mini.on{transform:none}
+.mini b{color:#fff}
+@media(min-width:900px){.mini{display:none}}
+@media(prefers-reduced-motion:reduce){.mini{transition:none}}
+.notes{font-size:13px;color:var(--mute);margin-top:16px}
+.notes li{margin-bottom:4px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="mini" id="mini" aria-hidden="true"><span>TBSA <b id="mT">0%</b></span><span>LR now <b id="mR">0 mL/h</b></span></div>
+<div class="wrap">
+<h1>Burn resuscitation</h1>
+<p class="sub">ABLS / ABA-style fluid calculator with Lund-Browder TBSA</p>
+
+<div class="grid">
+<section class="res" id="res" aria-live="polite">
+  <div class="k">Run now</div>
+  <div id="rNow" class="now"></div>
+  <div class="phase" id="phase">Enter weight and TBSA</div>
+  <div class="ln"><span>Total 24-h estimate</span><b id="r24">0 mL</b></div>
+  <div class="ln"><span id="l8">First 8 h</span><b id="r8">0 mL/h</b><em id="r8s"></em></div>
+  <div class="ln"><span>Hours 8–24</span><b id="r16">0 mL/h</b><em id="r16s"></em></div>
+  <div class="rows">
+    <div><b id="rU">0 mL/h</b><span>UOP target</span></div>
+    <div><b id="rA">0 mL/h</b><span>ABLS start rate (pre-calc)</span></div>
+  </div>
+  <div class="warn" id="warn"></div>
+</section>
+
+<div class="grid" style="grid-template-columns:minmax(0,1fr)">
+<section class="card">
+  <h2>Patient</h2>
+  <div class="f">
+    <div><label for="w">Weight (kg)</label><input id="w" type="number" inputmode="decimal" min="0" step="0.1" placeholder="70"></div>
+    <div><label for="age">Age (years)</label><input id="age" type="number" inputmode="decimal" min="0" step="0.5" placeholder="30"></div>
+    <div><label for="el">Hours since burn</label><input id="el" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
+    <div><label for="gv">Fluid given so far (mL)</label><input id="gv" type="number" inputmode="numeric" min="0" step="50" placeholder="0"></div>
+  </div>
+  <label class="tog"><input type="checkbox" id="elec"> High-voltage electrical injury</label>
+</section>
+
+<section class="card">
+  <h2>Formula</h2>
+  <div class="seg" role="group" aria-label="Formula">
+    <button data-k="abls" aria-pressed="true">ABLS</button>
+    <button data-k="park" aria-pressed="false">Parkland 4</button>
+    <button data-k="cust" aria-pressed="false">Custom</button>
+  </div>
+  <div id="custWrap" class="hide"><label for="kc">mL/kg/%TBSA</label><input id="kc" type="number" inputmode="decimal" step="0.5" value="3"></div>
+  <p class="hint" id="kNote"></p>
+</section>
+
+<section class="card">
+  <h2>TBSA</h2>
+  <div class="seg" role="group" aria-label="TBSA method">
+    <button data-m="lb" aria-pressed="true">Lund-Browder</button>
+    <button data-m="man" aria-pressed="false">Enter %</button>
+  </div>
+  <div id="manWrap" class="hide"><label for="tm">TBSA burned (%)</label><input id="tm" type="number" inputmode="decimal" min="0" max="100" step="0.5" placeholder="30"></div>
+  <div id="lbWrap">
+    <p class="hint" style="margin:0 0 6px">Fraction of each area with partial- or full-thickness burn. Leave out superficial (1st-degree) burns. Tap a fraction or type the exact % TBSA in the box; it caps at that region's maximum. Values adjust to age band: <b id="band">adult</b>.</p>
+    <div class="lb" id="lb"></div>
+    <div class="lbtot"><span>Total <b id="lbT">0%</b></span><button class="ghost" id="clr">Clear chart</button></div>
+  </div>
+</section>
+</div>
+</div>
+
+<ul class="notes">
+  <li>The formula gives a starting estimate. Titrate hourly to UOP. ABA 2024 guidance favours starting at the low end (2 mL/kg/%TBSA in adults) to avoid fluid creep.</li>
+  <li>ABLS: adults 2, children &lt;14 y 3, high-voltage electrical 4 mL/kg/%TBSA. Children ≤30 kg also get D5LR maintenance.</li>
+  <li><b>Resuscitation (LR):</b> 24-h volume = coefficient × weight (kg) × %TBSA. Half goes in the first 8 h from time of burn, half over the next 16 h.</li>
+  <li><b>Maintenance (D5LR), Holliday-Segar:</b> first 10 kg × 100 mL/kg/day + next 10 kg × 50 mL/kg/day + each kg above 20 × 20 mL/kg/day. Hourly rate = daily volume ÷ 24, run at the same rate for all 24 h. Example: 8 kg → 800 mL/day → 33 mL/h. 25 kg → 1,000 + 500 + 100 = 1,600 mL/day → 67 mL/h.</li>
+  <li>First half is timed from the burn, not from arrival. Catch-up delivers the remaining first-8 h volume over the hours left.</li>
+  <li>Reference aid only. Check against your institution's protocol and the ABLS manual.</li>
+</ul>
+</div>
+
+<script>
+{
+const R=[["Head","H"],["Neck",2],["Anterior trunk",13],["Posterior trunk",13],["R buttock",2.5],["L buttock",2.5],["Genitalia",1],["R upper arm",4],["L upper arm",4],["R lower arm",3],["L lower arm",3],["R hand",2.5],["L hand",2.5],["R thigh","T"],["L thigh","T"],["R leg","L"],["L leg","L"],["R foot",3.5],["L foot",3.5]];
+const AB={H:[19,17,13,11,9,7],T:[5.5,6.5,8,8.5,9,9.5],L:[5,5,5.5,6,6.5,7]};
+const BN=["<1 y","1–4 y","5–9 y","10–14 y","15 y","adult"];
+const FR=[0,.25,.5,.75,1],FL=["0","¼","½","¾","All"];
+const $=id=>document.getElementById(id);
+let S={w:"",age:"",el:"",gv:"",elec:false,k:"abls",kc:"3",m:"lb",tm:"",lb:R.map(()=>0)};
+try{const s=JSON.parse(localStorage.getItem("burncalc")||"null");if(s&&Array.isArray(s.lb)&&s.lb.length===R.length)S={...S,...s}}catch(e){}
+const save=()=>{try{localStorage.setItem("burncalc",JSON.stringify(S))}catch(e){}};
+const num=v=>{const n=parseFloat(v);return isFinite(n)&&n>=0?n:0};
+const band=a=>a<1?0:a<5?1:a<10?2:a<15?3:a<16?4:5;
+const pct=(r,b)=>typeof r[1]==="number"?r[1]:AB[r[1]][b];
+const fmt=n=>Math.round(n).toLocaleString("en-US");
+const f1=n=>(Math.round(n*10)/10).toString();
+const ageEntered=()=>S.age!=="";
+function drawLB(){
+  const b=band(ageEntered()?num(S.age):30);
+  $("band").textContent=BN[b];
+  $("lb").innerHTML=R.map((r,i)=>{const mx=pct(r,b),v=mx*S.lb[i];return `<div class="lr"><div class="n">${r[0]}<span id="lbs${i}">max ${f1(mx)}% · burned ${f1(v)}%</span></div><div class="ctl"><div class="ch">${FR.map((f,j)=>`<button data-r="${i}" data-f="${j}" aria-pressed="${S.lb[i]===f}" aria-label="${r[0]} ${FL[j]}">${FL[j]}</button>`).join("")}</div><input class="cu" type="number" inputmode="decimal" min="0" max="${mx}" step="0.5" data-r="${i}" value="${v?f1(v):""}" placeholder="%" aria-label="${r[0]} custom % TBSA, max ${f1(mx)}"></div></div>`}).join("");
+}
+function rowUpd(i){
+  const b=band(ageEntered()?num(S.age):30),mx=pct(R[i],b);
+  $("lbs"+i).textContent=`max ${f1(mx)}% · burned ${f1(mx*S.lb[i])}%`;
+  document.querySelectorAll(`.ch button[data-r="${i}"]`).forEach(x=>x.setAttribute("aria-pressed",S.lb[i]===FR[+x.dataset.f]));
+}
+function tbsa(){
+  if(S.m==="man")return Math.min(num(S.tm),100);
+  const b=band(ageEntered()?num(S.age):30);
+  return R.reduce((s,r,i)=>s+pct(r,b)*S.lb[i],0);
+}
+function calc(){
+  const w=num(S.w),a=num(S.age),el=num(S.el),gv=num(S.gv),T=tbsa(),child=ageEntered()&&a<14;
+  $("lbT").textContent=f1(T)+"%";
+  let k,kn;
+  if(S.k==="park"){k=4;kn="Parkland: 4 mL/kg/%TBSA."}
+  else if(S.k==="cust"){k=num(S.kc);kn="Custom coefficient."}
+  else if(S.elec){k=4;kn="ABLS high-voltage electrical: 4 mL/kg/%TBSA."}
+  else if(child){k=3;kn="ABLS child (<14 y): 3 mL/kg/%TBSA."}
+  else{k=2;kn="ABLS adult: 2 mL/kg/%TBSA."+(ageEntered()?"":" Enter age for pediatric logic.")}
+  $("kNote").textContent=kn;
+  const tot=k*w*T,h8=tot/2,r16=h8/16;
+  let now=0,ph="Enter weight and TBSA",warn=[];
+  if(w>0&&T>0){
+    if(el<8){const rem=Math.max(h8-gv,0);now=rem/(8-el);ph=`First 8 h: ${f1(8-el)} h left, ${fmt(rem)} mL to go`;if(gv>h8)warn.push("Already above the first-8 h volume. Run at the hours 8–24 rate and titrate to UOP.");if(gv>h8)now=r16}
+    else if(el<24){const rem=Math.max(tot-gv,0);now=rem/(24-el);ph=`Hours 8–24: ${f1(24-el)} h left, ${fmt(rem)} mL to go`;if(gv<h8)warn.push(`Behind: first-8 h target was ${fmt(h8)} mL. Remaining 24-h volume spread over the hours left; reassess clinically.`)}
+    else{ph="Past 24 h: transition to maintenance and colloid per protocol";now=0}
+  }
+  const lowT=child?10:20;
+  if(T>0&&T<lowT)warn.push(`TBSA under ${lowT}%: formal formula resuscitation is usually not required. Oral or maintenance fluids may suffice.`);
+  if(T>0&&k>=4&&!S.elec&&S.k==="park")warn.push("Parkland 4 mL tends to over-resuscitate. ABA 2024 favours starting at 2 mL/kg/%TBSA in adults.");
+  let u;
+  if(S.elec)u=child&&w<30?"1–1.5 mL/kg/h":"75–100 mL/h";
+  else if(child&&w<30)u=f1(w*1)+" mL/h";
+  else u=w?`${fmt(w*.5)} mL/h (30–50)`:"0.5 mL/kg/h";
+  if(S.elec)warn.push("Electrical: if urine is dark (myoglobinuria), keep UOP at 75–100 mL/h (adults) until it clears.");
+  const abls=ageEntered()?(a<=5?125:a<14?250:500):500;
+  const hsD=w<=10?w*100:w<=20?1000+(w-10)*50:1500+(w-20)*20;
+  const showM=child&&w>0&&w<=30,m24=Math.round(hsD),m=Math.round(hsD/24);
+  const both=lr=>`LR ${fmt(lr)} mL/h`+(showM?` + D5LR ${m} mL/h`:"");
+  const r8=el<8&&w>0&&T>0&&gv<=h8?now:h8/8;
+  const past24=el>=24&&w>0&&T>0;
+  const nowLR=past24?0:now;
+  $("rNow").innerHTML=(past24&&showM?"":`<div>${fmt(nowLR)}<small>mL/h LR</small></div>`)+(showM?`<div class="plus"><i>+</i>${m}<small>mL/h D5LR maintenance</small></div>`:"");
+  $("phase").textContent=ph;
+  $("r24").textContent=showM?`${fmt(tot)} mL LR + ${fmt(m24)} mL D5LR = ${fmt(tot+m24)} mL`:`${fmt(tot)} mL LR`;
+  $("l8").textContent=el<8&&gv>0?"First 8 h (catch-up)":"First 8 h";
+  $("r8").textContent=both(r8);
+  $("r8s").textContent=w>0&&T>0?`${fmt(h8)} mL LR over the first 8 h from time of burn`+(el>0&&el<8?`; ${fmt(Math.max(h8-gv,0))} mL left in ${f1(8-el)} h`:""):"";
+  $("r16").textContent=both(el>=8&&el<24?now:r16);
+  $("r16s").textContent=w>0&&T>0?`${fmt(h8)} mL LR over 16 h`+(el>=8&&el<24?" (adjusted for fluid given)":""):"";
+  $("rU").textContent=u;$("rA").textContent=abls+" mL/h";
+  $("warn").innerHTML=warn.map(x=>`<div>${x}</div>`).join("");
+  $("mT").textContent=f1(T)+"%";$("mR").textContent=fmt(nowLR)+(showM?` + ${m} D5LR`:"")+" mL/h";
+}
+function sync(){
+  for(const id of ["w","age","el","gv","kc","tm"])$(id).value=S[id];
+  $("elec").checked=S.elec;
+  document.querySelectorAll("[data-k]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===S.k));
+  document.querySelectorAll("[data-m]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===S.m));
+  $("custWrap").classList.toggle("hide",S.k!=="cust");
+  $("manWrap").classList.toggle("hide",S.m!=="man");
+  $("lbWrap").classList.toggle("hide",S.m!=="lb");
+  drawLB();calc();
+}
+for(const id of ["w","el","gv","kc","tm"])$(id).addEventListener("input",e=>{S[id]=e.target.value;save();calc()});
+$("age").addEventListener("input",e=>{S.age=e.target.value;save();drawLB();calc()});
+$("elec").addEventListener("change",e=>{S.elec=e.target.checked;save();calc()});
+document.querySelectorAll("[data-k]").forEach(b=>b.addEventListener("click",()=>{S.k=b.dataset.k;save();sync()}));
+document.querySelectorAll("[data-m]").forEach(b=>b.addEventListener("click",()=>{S.m=b.dataset.m;save();sync()}));
+$("lb").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.lb[+b.dataset.r]=FR[+b.dataset.f];save();drawLB();calc()});
+$("lb").addEventListener("input",e=>{const t=e.target;if(!t.classList.contains("cu"))return;const i=+t.dataset.r,mx=pct(R[i],band(ageEntered()?num(S.age):30));let v=num(t.value);if(v>mx){v=mx;t.value=f1(mx);t.classList.add("cap");setTimeout(()=>t.classList.remove("cap"),900)}S.lb[i]=mx?v/mx:0;save();rowUpd(i);calc()});
+$("clr").addEventListener("click",()=>{S.lb=R.map(()=>0);save();drawLB();calc()});
+const io=new IntersectionObserver(es=>{for(const x of es)$("mini").classList.toggle("on",!x.isIntersecting)});
+io.observe($("res"));
+sync();
+}
+</script>
+</body>
+</html>
