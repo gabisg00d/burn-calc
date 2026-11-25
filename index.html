@@ -66,7 +66,8 @@ input:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-of
 @media(min-width:560px){.lr{grid-template-columns:minmax(0,1fr) auto}}
 .ch button{width:40px;height:40px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;font:600 13px "Public Sans",system-ui,sans-serif;cursor:pointer}
 .ch button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
-.lbtot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
+.lbtot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0 4px;padding:10px 12px;background:var(--soft);border-radius:12px}
+.lbtot span{font-size:14px;color:var(--mute)}.lbtot b{color:var(--acc);margin-left:6px}
 .lbtot b{font-size:24px}
 .ghost{border:1px solid var(--line);background:none;color:var(--ink);border-radius:10px;padding:8px 14px;min-height:44px;font:600 14px "Public Sans",system-ui,sans-serif;cursor:pointer}
 .mini{position:fixed;left:0;right:0;top:0;z-index:5;background:var(--res);color:var(--resink);padding:calc(8px + env(safe-area-inset-top)) 16px 8px;display:flex;justify-content:space-between;font-size:14px;transform:translateY(-110%);transition:transform .2s}
@@ -132,8 +133,8 @@ input:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-of
   <div id="manWrap" class="hide"><label for="tm">TBSA burned (%)</label><input id="tm" type="number" inputmode="decimal" min="0" max="100" step="0.5" placeholder="30"></div>
   <div id="lbWrap">
     <p class="hint" style="margin:0 0 6px">Fraction of each area with partial- or full-thickness burn. Leave out superficial (1st-degree) burns. Tap a fraction or type the exact % TBSA in the box; it caps at that region's maximum. Values adjust to age band: <b id="band">adult</b>.</p>
+    <div class="lbtot"><span>Total TBSA burned <b id="lbT">0%</b></span><button class="ghost" id="clr">Clear chart</button></div>
     <div class="lb" id="lb"></div>
-    <div class="lbtot"><span>Total <b id="lbT">0%</b></span><button class="ghost" id="clr">Clear chart</button></div>
   </div>
 </section>
 </div>
